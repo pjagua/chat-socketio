@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>Login to the chat app</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+</head>
+<body>
+<script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+    var socket = io.connect('http://localhost:8000');
+    socket.on('connect', function() {
+        socket.emit('my event', 'connected!');
+    });
+
+    $('#sendButton').on('click', function() {
+	    socket.emit('login', {'username': $('#Username').val(), 'password': $('#Password').val()})
+    });
+
+    socket.on('login', function(json) {
+	    //var authObj= JSON.parse(json);
+	    //if (auth.Obj.auth == True) {
+	    if (json == true) {
+		    $("#authresult").append('<li>Authenticated</li>');
+		    window.location = "/chat";
+	    } else {
+		    $("#authresult").append('<li>Failed to Authenticate</li>');
+		    window.location = "/login";
+	    }
+    });
+
+
+
+});
+
+</script>
+<ul id="authresult"></ul>
+Username:<input type="text" id="Username"><br>
+Password:<input type="text" id="Password"><br>
+<button id="sendButton">submit</button>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<html>
+<head>
+<title>Hello from Chat</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+</head>
+<body>
+<script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+    var socket = io.connect('http://localhost:8000');
+
+    socket.on('client event', function(msgs) {
+        $("#json").append('<li>'+msgs+'</li>');
+        console.log('Received message: '+msgs);
+    });
+
+    $('#sendButton').on('click', function() {
+	    socket.emit('msg', {'data': {'msg': $('#sendMessage').val(), 
+			                 'sid' : $('#sendUser').val(), 
+					 'rid' : $('#recvUser').val(),
+				         'image' : { 'url' : $('#sendImage').val(),
+						     'Width' : $('#sendImgwidth').val(),
+						     'Height' : $('#sendImgheight').val()},
+			                 'video' : { 'url' : $('#sendVideo').val(),
+			                             'source' : $('#sendVidSource').val(),
+						     'length' : $('#sendVidLength').val()}}});
+    });
+
+});
+
+</script>
+<ul id="json">
+    {% for msg in json %}
+        <li> {{msg}} </li>
+    {%endfor%}
+</ul>
+
+Send user: <input type="text" id="sendUser"><br>
+Recv user: <input type="text" id="recvUser"><br>
+Message: <input type="text" id="sendMessage"><br>
+images Url: <input type="text" id="sendImage">
+    send images width: <input type="text" id="sendImgwidth">
+    send images height: <input type="text" id="sendImgheight"><br>
+video Url: <input type="text" id="sendVideo">
+    send video length: <input type="text" id="sendVidLength">
+    send video Source: <input type="text" id="sendVidSource"><br>
+<button id="sendButton">submit</button>
+</body>
+</html>
