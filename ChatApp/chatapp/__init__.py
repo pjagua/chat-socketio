@@ -31,7 +31,7 @@ LOG = True
 db = pymysql.connect(
     user='root',
     password='testpass',
-    host='localhost',
+    host='db',
     database='chatapp',
 )
 
@@ -80,7 +80,7 @@ db.cursor().execute('''CREATE TABLE IF NOT EXISTS messages (
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
-socketio = SocketIO(app, sync_mode=ASYNC_MODE)
+socketio = SocketIO(app, sync_mode=ASYNC_MODE, engineio_logger=LOG)
 
 def chk_user(username):
     if not username:
@@ -110,9 +110,9 @@ def salt_pass(passwd, salt=None):
                 salt = hexlify(os.urandom(8))
         except Exception as e:
             raise Exception("failed to salt password: {0}".format(e))
-            
-        return hexlify(hashlib.pbkdf2_hmac("sha256", hexlify(passwd), salt, 100000)), salt
-    raise Exception("Password is empty, failed to salt password")
+        else:
+            return hexlify(hashlib.pbkdf2_hmac("sha256", hexlify(passwd), salt, 100000)), salt
+    raise Exception("Password is empty, failed to salt password: {0}".formtat(salt))
 
 
 def user_auth(uid, passwd):

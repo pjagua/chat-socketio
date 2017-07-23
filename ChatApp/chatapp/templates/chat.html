@@ -7,7 +7,7 @@
 <body>
 <script type="text/javascript" charset="utf-8">
 $(document).ready(function() {
-    var socket = io.connect('http://localhost:8000');
+    var socket = io.connect('http://localhost:18000');
 
     socket.on('client event', function(msgs) {
         $("#json").append('<li>'+msgs+'</li>');
