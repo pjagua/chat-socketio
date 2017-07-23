@@ -30,7 +30,7 @@ LOG = True
 #Initialize DB object
 db = pymysql.connect(
     user='root',
-    password='Env91gve',
+    password='testpass',
     host='localhost',
     database='challenge',
 )
