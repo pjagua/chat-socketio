@@ -8,6 +8,7 @@ import eventlet
 import datetime
 import flask
 from binascii import hexlify
+from binascii import a2b_base64
 from flask import Flask
 from flask import render_template
 from flask_socketio import SocketIO
@@ -111,7 +112,7 @@ def salt_pass(passwd, salt=None):
         except Exception as e:
             raise Exception("failed to salt password: {0}".format(e))
         else:
-            return hexlify(hashlib.pbkdf2_hmac("sha256", hexlify(passwd), salt, 100000)), salt
+            return hexlify(hashlib.pbkdf2_hmac("sha256", hexlify(a2b_base64(passwd)), salt, 100000)), salt
     raise Exception("Password is empty, failed to salt password: {0}".formtat(salt))
 
 
