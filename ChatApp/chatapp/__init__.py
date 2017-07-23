@@ -32,7 +32,7 @@ db = pymysql.connect(
     user='root',
     password='testpass',
     host='localhost',
-    database='challenge',
+    database='chatapp',
 )
 
 # Initiallize Data Model if not already initialized
