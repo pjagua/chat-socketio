@@ -43,3 +43,8 @@ To stop the application, either from another terminal, or send the foreground pr
 			}
 	   }
 }	
+{ errors : {
+	    code : <error code>
+	    detail : <Error Message>
+	   }
+}
