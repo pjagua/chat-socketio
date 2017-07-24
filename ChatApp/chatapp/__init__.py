@@ -48,8 +48,8 @@ db.cursor().execute('''CREATE TABLE IF NOT EXISTS accounts (
 db.cursor().execute('''CREATE TABLE IF NOT EXISTS messages (
         id INT UNSIGNED UNSIGNED NOT NULL AUTO_INCREMENT,
         PRIMARY KEY(id),
-        sid INT UNSIGNED,
-        rid INT UNSIGNED,
+        sid INT,
+        rid INT,
         message varchar(512),
         attributes JSON NOT NULL,
         date DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -95,7 +95,7 @@ def salt_pass(passwd, salt=None):
         except Exception as e:
             raise Exception("failed to salt password: {0}".format(e))
         else:
-            return hexlify(hashlib.pbkdf2_hmac("sha256", hexlify(a2b_base64(passwd)), salt, 100000)), salt
+            return hexlify(hashlib.pbkdf2_hmac("sha256", hexlify(passwd.encode("utf8")), salt, 100000)), salt
     raise Exception("Password is empty, failed to salt password: {0}".formtat(salt))
 
 
@@ -110,13 +110,13 @@ def user_auth(uid, passwd):
         result = cursor.fetchone()
 
     try:
-        prov_pass = salt_pass(passwd, result[0])
+        prov_pass = salt_pass(passwd, result[0].encode("utf8"))
     except Exception as e:
-        raise Exception("Failed to calculate password for authentication")
+        raise Exception("Failed to calculate password for authentication: {0}".format(e))
     else:
-        if prov_pass[0]  == result[1]:
+        if prov_pass[0]  == result[1].encode("utf8"):
             return True
-        raise Exception("Failed to Authenticate: hashes do not match")
+        raise Exception("Failed to Authenticate: hashes do not match {0} - {1}".format(prov_pass[0], result[1]))
  
 
 def store_msg(msg, s_user, r_user, attrib=None):
@@ -130,17 +130,18 @@ def store_msg(msg, s_user, r_user, attrib=None):
         raise Exception("Failed to find user in Database: {0}".format(e))
     else:
         if not attrib:
-            attrib = '{ "attributes" : { 
+            attrib = '''{ "attributes" : { 
                                          "image" : "null",
                                          "video" : "null"
                                        }
-                      }'
+                      }'''
 
         with db.cursor() as cursor:
-            sql = "INSERT INTO `messages` (`sid`,
+            sql = """INSERT INTO `messages` (`sid`,
                                            `rid`,
-                                           `message`, 
-                                           `attributes`) VALUES (%s, %s, %s, JSON_MERGE(%s))"
+                                           `message`,
+                                           `attributes`)
+                                           VALUES (%s, %s, %s, JSON_MERGE(%s))"""
             cursor.execute(sql, (sid, rid, msg, attrib))
             db.commit()
             cursor.close()
@@ -163,11 +164,11 @@ def msg_fetch(sid, rid, page=None, limit=None):
 
         
         with db.cursor() as cursor:
-            sql = 'SELECT `date`, `message`, attributes` 
-                   FROM `messages` 
-                   WHERE `sid` AND `rid` IN (%s, %s)
-                   LIMIT %s %s 
-                   ORDER BY UNIX_TIMESTAMP(date) DESC'
+            sql = '''SELECT `date`, `message`, attributes` 
+                     FROM `messages` 
+                     WHERE `sid` AND `rid` IN (%s, %s)
+                     LIMIT %s %s 
+                     ORDER BY UNIX_TIMESTAMP(date) DESC'''
             cursor.execute(sql, (sid, rid, page, limit))
             result = cursor.fetchall()
 
@@ -180,11 +181,15 @@ def handle_logins(data):
     uid = None
     
     try:
-        username = json.loads(json.dumps(data))["username"]
-        password = json.loads(json.dumps(data))["password"]
+        username = json.loads(json.dumps(data))['data']["user_auth"]['username']
+        password = json.loads(json.dumps(data))['data']["user_auth"]["password"]
     except Exception as e:
         sys.stderr.write("Empty fields in JSON string: {0}".format(e))
-        emit('login', False)
+        emit('login', str({ 'errors' : {
+                                    'code' : '400',
+                                    'detail': 'Bad Request, username or password cannot be empty'
+                                   }})
+            )
     else:
         try:
             uid = chk_user(username)
@@ -197,70 +202,72 @@ def handle_logins(data):
             user_auth(uid, password)
         except Exception as e:
             sys.stderr.write("Failed verify user: {0}".format(e))
-            emit('login', False)
+            emit('login', str({'errors' : {
+                                        'code' : '401',
+                                        'detail': 'User Authentication failed'
+                                       }})
+                )
         else:
             print("User: {0} logged in successfully".format(username))
-            emit('login', True)
+            emit('login', str({ 'data' : {
+                                            'type' : 'login',
+                                            'user_auth' : {
+                                                            'username' : username
+                                                          }
+                                         }
+                              })
+                )
     else:
         try:
             password, salt = salt_pass(password)
         except Exception as e:
             sys.stderr.write("Failed to salt password: {0}".format(e))
-            emit('login', False)
+            emit('login', str({ 'errors' : {
+                                        'code' : '500',
+                                        'detail': 'Internal Server error'
+                                       }})
+                )
         else:
             try:
-                useradd(username, password,  salt) 
+                useradd(username, password, salt) 
             except Exception as e:
                 sys.stderr.write("Failed to create new user: {0}".format(e))
-                emit('login', False)
-                return
+                emit('login', str({ 'errors' : {
+                                            'code' : '500',
+                                            'detail': 'Internal Server error occurred while trying to add user to the database'
+                                           }})
+                    )
             else:
-                emit('login', True)
-
-
-
-
-        
+                emit('login', str({ 'data' : {
+                                                'type' : 'login',
+                                                'user_auth' : {
+                                                                'username' : username
+                                                              }
+                                             }
+                                  })
+                    )
 
 
 @socketio.on('msg')
 def handle_txt_msg_event(json_str):
     date_format = '%Y-%m-%d %H:%M:%S'
 
-    if json_str['data']['type'] == 'user':
-
-        if _json_parse(json_str['data']['image']):
-            image = (
-                    json_str['data']['image']['url'],
-                    json_str['data']['image']['Width'],
-                    json_str['data']['image']['Height']
-                    )
-        else:
-            image = None
-
-        if _json_parse(json_str['data']['video']):
-            video = (
-                    json_str['data']['video']['url'],
-                    json_str['data']['video']['source'],
-                    json_str['data']['video']['length']
-                    )
-        else:
-            video = None
+    if json_str['data']['type'] == 'msg':
 
         try:
             entry = store_msg(
-                             json_str['data']['msg'], 
-                              json_str['data']['sid'], 
-                              json_str['data']['rid'],
-                              image,
-                              video
+                              json_str['data']['message']['sid'], 
+                              json_str['data']['message']['rid'],
+                              json_str['data']['message']['message_data'],
+                                      ['attributes']['image'],
+                                      ['attributes']['video']
                              )
         except Exception as e:
             sys.stderr.write("Failed to save message: {0}".format(e))
         else:
             print(entry[0][0].strftime(date_format), entry[0][1])
             emit('client event', str({ 'data' : {
-                                           'type' : 'msgs'
+                                           'type' : 'msgs',
                                            'id' : entry[0][4],
                                            'attributes' : {
                                                             'date' : entry[0][0].strftime(date_format),
@@ -270,22 +277,22 @@ def handle_txt_msg_event(json_str):
                                                           }
                                            }
                                       }))
-@socketio.on('/msgsearch')
-def handle_search_event():
-    if json_str['data']['type'] = 'search':
-        if json_str['data']['attributes']['num_row'] and json_str['data']['attributes']['page']:
-            limit = json_str['data']['attributes']['num_row']
-            page = json_str['data']['attributes']['page']
-            sid = json_str['data']['attributes']['sid'] 
-            rid = json_str['data']['attributes']['rid']
-            msgs = msg_fetch(sid, rid, page, limit)
-            emit('search event', str({'data' : {
-                                                   'type' : 'search',
-                                                   'attributes' : {
-                                                       "message"
-                                                   
-                                    }))
-                                                  
+#@socketio.on('/msgsearch')
+#def handle_search_event():
+#    if json_str['data']['type'] = 'search':
+#        if json_str['data']['attributes']['num_row'] and json_str['data']['attributes']['page']:
+#            limit = json_str['data']['attributes']['num_row']
+#            page = json_str['data']['attributes']['page']
+#            sid = json_str['data']['attributes']['sid'] 
+#            rid = json_str['data']['attributes']['rid']
+#            msgs = msg_fetch(sid, rid, page, limit)
+#            emit('search event', str({'data' : {
+#                                                   'type' : 'search',
+#                                                   'attributes' : {
+#                                                       "message"
+#                                                   
+#                                    }))
+#                                                  
            
             
 

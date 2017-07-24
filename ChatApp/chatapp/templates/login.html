@@ -13,19 +13,26 @@ $(document).ready(function() {
     });
 
     $('#sendButton').on('click', function() {
-	    socket.emit('login', {'username': $('#Username').val(), 'password': $('#Password').val()})
+	    socket.emit('login', { "data": {
+				    	"type" : "login",
+					"user_auth" : {
+						"username": $('#Username').val(), 
+						"password": $('#Password').val()
+						}
+					}
+				}
+	    )
     });
 
     socket.on('login', function(json) {
-	    //var authObj= JSON.parse(json);
-	    //if (auth.Obj.auth == True) {
-	    if (json == true) {
-		    $("#authresult").append('<li>Authenticated</li>');
-		    window.location = "/chat";
-	    } else {
-		    $("#authresult").append('<li>Failed to Authenticate</li>');
-		    window.location = "/login";
-	    }
+	    $("#authresult").append('<li>'+json+'</li>');
+//	    if (json == true) {
+//		    $("#authresult").append('<li>Authenticated</li>');
+//		    window.location = "/chat";
+//	    } else {
+//		    $("#authresult").append('<li>Failed to Authenticate</li>');
+//		    window.location = "/login";
+//	    }
     });
 
 

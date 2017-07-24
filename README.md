@@ -20,14 +20,16 @@ To stop the application, either from another terminal, or send the foreground pr
            page : <page #>
 }, 
 { data : {
-           type : [user | msg],
+           type : [login | msg],
            id : [user id | msg_id],
-           [ user : {
-		      username : <usernamme>,
-		      password : <password>
-		    } |
-	     message : {
+           user_auth : {
+		           username : <usernamme>,
+		           password : <password>
+		       } 
+	   message : {
 			 message_data : <data>,
+			 sid : <sender user>,
+			 rid : <receiver user >,
 			 attributes : { 
 					image : {
 				        	url : <http link>
@@ -40,7 +42,7 @@ To stop the application, either from another terminal, or send the foreground pr
 				    		length : video length 
 				      		},
 				        }
-			}
+		        }
 	   }
 }	
 { errors : {
