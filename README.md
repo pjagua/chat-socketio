@@ -13,3 +13,33 @@ To stop the application, either from another terminal, or send the foreground pr
 
 
 ### API Documentation
+
+#### JSON SCHEMA
+{ meta : {
+           rows : <rows per page>,
+           page : <page #>
+}, 
+{ data : {
+           type : [user | msg],
+           id : [user id | msg_id],
+           [ user : {
+		      username : <usernamme>,
+		      password : <password>
+		    } |
+	     message : {
+			 message_data : <data>,
+			 attributes : { 
+					image : {
+				        	url : <http link>
+				   		width : image width
+				    		height : image height
+				      		},
+				        video : {
+				    		url : <http link>
+				    		source : <source name>
+				    		length : video length 
+				      		},
+				        }
+			}
+	   }
+}	

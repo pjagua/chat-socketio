@@ -38,37 +38,20 @@ db = pymysql.connect(
 
 # Initiallize Data Model if not already initialized
 db.cursor().execute('''CREATE TABLE IF NOT EXISTS accounts (
-        id INT NOT NULL AUTO_INCREMENT,
+        id INT UNSIGNED UNSIGNED NOT NULL AUTO_INCREMENT,
         PRIMARY KEY(id),
         username varchar(16),
         password varchar(96),
         salt varchar(16)
         )ENGINE=InnoDB''')
-db.cursor().execute('''CREATE TABLE IF NOT EXISTS images (
-        id INT NOT NULL AUTO_INCREMENT,
-        PRIMARY KEY(id),
-        url TEXT,
-        width SMALLINT,
-        height SMALLINT
-        )ENGINE=InnoDB''')
-
-db.cursor().execute('''CREATE TABLE IF NOT EXISTS videos (
-        id INT NOT NULL AUTO_INCREMENT,
-        PRIMARY KEY(id),
-        url TEXT,
-        source TEXT,
-        length TIME
-        )ENGINE=InnoDB''')
-
 
 db.cursor().execute('''CREATE TABLE IF NOT EXISTS messages (
-        id INT NOT NULL AUTO_INCREMENT,
+        id INT UNSIGNED UNSIGNED NOT NULL AUTO_INCREMENT,
         PRIMARY KEY(id),
-        sid INT,
-        rid INT,
+        sid INT UNSIGNED,
+        rid INT UNSIGNED,
         message varchar(512),
-        image INT NULL,
-        video INT NULL,
+        attributes JSON NOT NULL,
         date DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY SEND_INDEX (sid) REFERENCES accounts (id)
         ON DELETE CASCADE 
@@ -136,7 +119,7 @@ def user_auth(uid, passwd):
         raise Exception("Failed to Authenticate: hashes do not match")
  
 
-def store_msg(msg, s_user, r_user, images=None, video=None):
+def store_msg(msg, s_user, r_user, attrib=None):
     if not msg and not s_user and not r_user:
         raise Exception("message arguments are not complete")
 
@@ -146,52 +129,51 @@ def store_msg(msg, s_user, r_user, images=None, video=None):
     except Exception as e:
         raise Exception("Failed to find user in Database: {0}".format(e))
     else:
+        if not attrib:
+            attrib = '{ "attributes" : { 
+                                         "image" : "null",
+                                         "video" : "null"
+                                       }
+                      }'
+
         with db.cursor() as cursor:
-            if images:
-                sql = 'SELECT `id` FROM `images` WHERE `url`=%s AND `width`=%s AND `height`=%s'
-                cursor.execute(sql, (images[0], images[1], images[2]))
-                image_id = cursor.fetchone()
-                if not image_id:
-                    sql = "INSERT INTO `images` (`url`, `width`, `height`) VALUES (%s, %s, %s)"
-                    cursor.execute(sql, (images[0], images[1], images[2]))
-                    db.commit()
-                    sql = 'SELECT `id` FROM `images` WHERE `url`=%s AND `width`=%s AND `height`=%s'
-                    cursor.execute(sql, (images[0], images[1], images[2]))
-                    image_id = cursor.fetchone()
-            else:
-                image_id = images
-
-            if video:
-                sql = 'SELECT `id` FROM `video` WHERE `url`=%s AND `source`=%s AND `length`=%s'
-                cursor.execute(sql, (video[0], video[1], video[2]))
-                vid_id = cursor.fetchone()
-                if not vid_id:
-                    sql = "INSERT INTO `video` (`url`, `source`, `length`) VALUES (%s, %s, %s)"
-                    cursor.execute(sql, (video[0], video[1], video[2]))
-                    db.commit()
-                    sql = 'SELECT `id` FROM `video` WHERE `url`=%s AND `source`=%s AND `length`=%s'
-                    cursor.execute(sql, (video[0], video[1], video[2]))
-                    vid_id = cursor.fetchone()
-            else:
-                vid_id = video
-
-            sql = "INSERT INTO `messages` (`sid`, `rid`, `message`, `image`, `video`) VALUES (%s, %s, %s, %s, %s)"
-            cursor.execute(sql, (sid, rid, msg, image_id, vid_id))
+            sql = "INSERT INTO `messages` (`sid`,
+                                           `rid`,
+                                           `message`, 
+                                           `attributes`) VALUES (%s, %s, %s, JSON_MERGE(%s))"
+            cursor.execute(sql, (sid, rid, msg, attrib))
             db.commit()
             cursor.close()
         return msg_fetch(sid, rid)
 
-def msg_fetch(sid, rid):
+def _json_parse(_json):
+    if not _json:
+        return None
+
+    for k,v in _json.iteritems():
+        if not v:
+            return None
+    return True
+
+def msg_fetch(sid, rid, page=None, limit=None):
+    if not limit:
+        limit = 10**24
+    if not page:
+        page = 0
+
+        
         with db.cursor() as cursor:
-            sql = 'SELECT `date`, `message`, `image`, `video` FROM `messages` WHERE `sid` AND `rid` IN (%s, %s) ORDER BY UNIX_TIMESTAMP(date) DESC'
-            cursor.execute(sql, (sid, rid))
+            sql = 'SELECT `date`, `message`, attributes` 
+                   FROM `messages` 
+                   WHERE `sid` AND `rid` IN (%s, %s)
+                   LIMIT %s %s 
+                   ORDER BY UNIX_TIMESTAMP(date) DESC'
+            cursor.execute(sql, (sid, rid, page, limit))
             result = cursor.fetchall()
 
             cursor.close()
 
-
         return result
-
 
 @socketio.on('login')
 def handle_logins(data):
@@ -235,14 +217,6 @@ def handle_logins(data):
             else:
                 emit('login', True)
 
-def _json_parse(_json):
-    if not _json:
-        return None
-
-    for k,v in _json.iteritems():
-        if not v:
-            return None
-    return True
 
 
 
@@ -253,7 +227,7 @@ def _json_parse(_json):
 def handle_txt_msg_event(json_str):
     date_format = '%Y-%m-%d %H:%M:%S'
 
-    if json_str['data']:
+    if json_str['data']['type'] == 'user':
 
         if _json_parse(json_str['data']['image']):
             image = (
@@ -275,7 +249,7 @@ def handle_txt_msg_event(json_str):
 
         try:
             entry = store_msg(
-                              json_str['data']['msg'], 
+                             json_str['data']['msg'], 
                               json_str['data']['sid'], 
                               json_str['data']['rid'],
                               image,
@@ -285,17 +259,35 @@ def handle_txt_msg_event(json_str):
             sys.stderr.write("Failed to save message: {0}".format(e))
         else:
             print(entry[0][0].strftime(date_format), entry[0][1])
-            emit('client event', str({'date' : entry[0][0].strftime(date_format),
-                                      'message': entry[0][1],
-                                      'image' : entry[0][2],
-                                      'video' : entry[0][3]}))
-    elif json_str['msg_search']:
-        if _json_parse(json_str['msg_search']):
-            msgs = msg_fetch(
-                    json_str['msg_search']['sid'], 
-                    json_str['msg_search']['rid']
-                    )
-            print(msgs)
+            emit('client event', str({ 'data' : {
+                                           'type' : 'msgs'
+                                           'id' : entry[0][4],
+                                           'attributes' : {
+                                                            'date' : entry[0][0].strftime(date_format),
+                                                            'message': entry[0][1],
+                                                            'image' : entry[0][2],
+                                                            'video' : entry[0][3]
+                                                          }
+                                           }
+                                      }))
+@socketio.on('/msgsearch')
+def handle_search_event():
+    if json_str['data']['type'] = 'search':
+        if json_str['data']['attributes']['num_row'] and json_str['data']['attributes']['page']:
+            limit = json_str['data']['attributes']['num_row']
+            page = json_str['data']['attributes']['page']
+            sid = json_str['data']['attributes']['sid'] 
+            rid = json_str['data']['attributes']['rid']
+            msgs = msg_fetch(sid, rid, page, limit)
+            emit('search event', str({'data' : {
+                                                   'type' : 'search',
+                                                   'attributes' : {
+                                                       "message"
+                                                   
+                                    }))
+                                                  
+           
+            
 
 
 
