@@ -259,7 +259,6 @@ def handle_txt_msg_event(json_str):
                                                }})
                 )
         else:
-            sys.stderr.write(str(entry))
             emit('msg', str({ 'data' : {
                                            'type' : 'msg',
                                            'id' : entry[0][3],
