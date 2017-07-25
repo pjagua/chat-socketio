@@ -39,7 +39,7 @@ db = pymysql.connect(
 
 # Initiallize Data Model if not already initialized
 db.cursor().execute('''CREATE TABLE IF NOT EXISTS accounts (
-        id INT UNSIGNED UNSIGNED NOT NULL AUTO_INCREMENT,
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         PRIMARY KEY(id),
         username varchar(16),
         password varchar(96),
@@ -47,10 +47,10 @@ db.cursor().execute('''CREATE TABLE IF NOT EXISTS accounts (
         )ENGINE=InnoDB''')
 
 db.cursor().execute('''CREATE TABLE IF NOT EXISTS messages (
-        id INT UNSIGNED UNSIGNED NOT NULL AUTO_INCREMENT,
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         PRIMARY KEY(id),
-        sid INT,
-        rid INT,
+        sid INT UNSIGNED,
+        rid INT UNSIGNED,
         message varchar(512),
         attributes JSON NOT NULL,
         date DATETIME DEFAULT CURRENT_TIMESTAMP,
