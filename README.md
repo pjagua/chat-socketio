@@ -15,6 +15,7 @@ To stop the application, either from another terminal, or send the foreground pr
 ### API Documentation
 
 #### JSON SCHEMA
+```json
 { meta : {
            rows : <rows per page>,
            page : <page #>
@@ -50,3 +51,4 @@ To stop the application, either from another terminal, or send the foreground pr
 	    detail : <Error Message>
 	   }
 }
+```
