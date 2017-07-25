@@ -6,9 +6,9 @@ Installation
 
 Using docker-compose run:
     docker-compose up chatapp
-This will download the required docker images, and creates the docker containers required to run the app.
+This will download the required docker images creating the docker containers required to run the app.
 On statrup, the app creates the schema and runs the application in the foreground.
-To stop the application, either from another terminal, or send the foreground process to the background, and run:
+To stop the application, from another terminal, or by sending the foreground process to the background (Ctrl+Z in Unix),  run:
     docker-compose down
 
 
