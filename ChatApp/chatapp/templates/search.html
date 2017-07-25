@@ -1,0 +1,48 @@
+<html>
+<head>
+<title>Hello from Chat</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+</head>
+<body>
+<script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+    var socket = io.connect('http://localhost:18000');
+
+    socket.on('msgsearch', function(msgs) {
+        $("#json").append(msgs);
+        console.log('Received message: '+msgs);
+    });
+
+    $('#sendButton').on('click', function() {
+	    socket.emit('msgsearch', {
+			         "meta": {
+				          "rows" : $('#rows').val(),
+				          "page" : $('#page').val()
+	                                 },
+			         "data": {
+				          "message" : {
+						        "sid" : $('#sid').val(),
+						        "rid" : $('#rid').val(),
+						      },
+				          }
+	    			}	
+	               );
+    });
+
+});
+
+</script>
+<ul id="json">
+    {% for msg in json %}
+        <li> {{msg}} </li>
+    {%endfor%}
+</ul>
+
+Rows: <input type="text" id="rows"><br>
+page: <input type="text" id="page"><br>
+page: <input type="text" id="sid"><br>
+page: <input type="text" id="rid"><br>
+<button id="sendButton">submit</button>
+</body>
+</html>
