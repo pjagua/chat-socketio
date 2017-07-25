@@ -66,6 +66,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
 socketio = SocketIO(app, sync_mode=ASYNC_MODE, engineio_logger=LOG)
 
+
+
+## Helper Functions
+
 def chk_user(username):
     if not username:
         raise Exception("Username is empty\n")
@@ -129,21 +133,9 @@ def store_msg(msg, s_user, r_user, attrib=None):
     except Exception as e:
         raise Exception("Failed to find user in Database: {0}".format(e))
     else:
-        if not attrib:
-            attrib = '''{ "attributes" : { 
-                                         "image" : "null",
-                                         "video" : "null"
-                                       }
-                      }'''
-        sys.stderr.write(str(attrib))
-
         with db.cursor() as cursor:
-            sql = """INSERT INTO `messages` (`sid`,
-                                           `rid`,
-                                           `message`,
-                                           `attributes`)
-                                           VALUES (%s, %s, %s, {%s}))"""
-            cursor.execute(sql, (sid, rid, msg, attrib))
+            sql = "INSERT INTO `messages` (`sid`, `rid`, `message`, `attributes`) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (sid, rid, msg, json.dumps(attrib)))
             db.commit()
             cursor.close()
         return msg_fetch(sid, rid)
@@ -159,17 +151,13 @@ def _json_parse(_json):
 
 def msg_fetch(sid, rid, page=None, limit=None):
     if not limit:
-        limit = 10**24
+        limit = 10**18
     if not page:
         page = 0
 
         
         with db.cursor() as cursor:
-            sql = '''SELECT `date`, `message`, attributes` 
-                     FROM `messages` 
-                     WHERE `sid` AND `rid` IN (%s, %s)
-                     LIMIT %s %s 
-                     ORDER BY UNIX_TIMESTAMP(date) DESC'''
+            sql = "SELECT `date`, `message`, `attributes`, `id` FROM `messages` WHERE `sid` AND `rid` IN (%s, %s) ORDER BY UNIX_TIMESTAMP(date) DESC LIMIT %s, %s"
             cursor.execute(sql, (sid, rid, page, limit))
             result = cursor.fetchall()
 
@@ -271,18 +259,16 @@ def handle_txt_msg_event(json_str):
                                                }})
                 )
         else:
-            print(entry[0][0].strftime(date_format), entry[0][1])
+            sys.stderr.write(str(entry))
             emit('msg', str({ 'data' : {
-                                           'type' : 'msgs',
-                                           'id' : entry[0][4],
-                                           'attributes' : {
-                                                            'date' : entry[0][0].strftime(date_format),
-                                                            'message': entry[0][1],
-                                                            'image' : entry[0][2],
-                                                            'video' : entry[0][3]
-                                                          }
-                                           }
-                                      }))
+                                           'type' : 'msg',
+                                           'id' : entry[0][3],
+                                           'message' : {
+                                                         'message_data' : entry[0][1],
+                                                         'attributes' : entry[0][2] 
+                                                       }
+                                      }
+                            }))
 @socketio.on('/msgsearch')
 def handle_search_event():
     if json_str['meta']['rows'] and json_str['meta']['page']:
