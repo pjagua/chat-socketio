@@ -135,13 +135,14 @@ def store_msg(msg, s_user, r_user, attrib=None):
                                          "video" : "null"
                                        }
                       }'''
+        sys.stderr.write(str(attrib))
 
         with db.cursor() as cursor:
             sql = """INSERT INTO `messages` (`sid`,
                                            `rid`,
                                            `message`,
                                            `attributes`)
-                                           VALUES (%s, %s, %s, JSON_MERGE(%s))"""
+                                           VALUES (%s, %s, %s, {%s}))"""
             cursor.execute(sql, (sid, rid, msg, attrib))
             db.commit()
             cursor.close()
@@ -251,22 +252,27 @@ def handle_logins(data):
 @socketio.on('msg')
 def handle_txt_msg_event(json_str):
     date_format = '%Y-%m-%d %H:%M:%S'
+    json_str = json.loads(json.dumps(json_str))
 
-    if json_str['data']['type'] == 'msg':
+    if json.loads(json.dumps(json_str))['data']['type'] == 'msg':
 
         try:
             entry = store_msg(
+                              json_str['data']['message']['message_data'],
                               json_str['data']['message']['sid'], 
                               json_str['data']['message']['rid'],
-                              json_str['data']['message']['message_data'],
-                                      ['attributes']['image'],
-                                      ['attributes']['video']
+                              json_str['data']['message']['attributes']
                              )
         except Exception as e:
-            sys.stderr.write("Failed to save message: {0}".format(e))
+            sys.stderr.write("Failed to save message: {0}\n".format(e))
+            emit('msgsearch', str({ 'errors' : {
+                                                'code' : '400',
+                                                'detail': 'Message object cannot be empty'
+                                               }})
+                )
         else:
             print(entry[0][0].strftime(date_format), entry[0][1])
-            emit('client event', str({ 'data' : {
+            emit('msg', str({ 'data' : {
                                            'type' : 'msgs',
                                            'id' : entry[0][4],
                                            'attributes' : {
@@ -277,22 +283,26 @@ def handle_txt_msg_event(json_str):
                                                           }
                                            }
                                       }))
-#@socketio.on('/msgsearch')
-#def handle_search_event():
-#    if json_str['data']['type'] = 'search':
-#        if json_str['data']['attributes']['num_row'] and json_str['data']['attributes']['page']:
-#            limit = json_str['data']['attributes']['num_row']
-#            page = json_str['data']['attributes']['page']
-#            sid = json_str['data']['attributes']['sid'] 
-#            rid = json_str['data']['attributes']['rid']
-#            msgs = msg_fetch(sid, rid, page, limit)
-#            emit('search event', str({'data' : {
-#                                                   'type' : 'search',
-#                                                   'attributes' : {
-#                                                       "message"
-#                                                   
-#                                    }))
-#                                                  
+@socketio.on('/msgsearch')
+def handle_search_event():
+    if json_str['meta']['rows'] and json_str['meta']['page']:
+        rows = json_str['meta']['rows']
+        page = json_str['meta']['page']
+
+    if not json_str['data']['msg']['message']:
+        emit('msgsearch', str({ 'errors' : {
+                                            'code' : '400',
+                                            'detail': 'Message object cannot be empty'
+                                           }})
+                    )
+        return
+
+    msg = json_str['data']['msg']['message']['message_data'] 
+    sid = json_str['data']['msg']['message']['sid'] 
+    rid = json_str['data']['msg']['message']['rid'] 
+    attrib = json_str['data']['msg']['message']['attributes'] 
+
+    msges = msg_fetch(sid, rid, page, limit)
            
             
 
