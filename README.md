@@ -19,6 +19,7 @@ To stop the application, either from another terminal, or send the foreground pr
 { meta : {
            rows : <rows per page>,
            page : <page #>
+	 }
 }, 
 { data : {
            type : [login | msg],
@@ -29,6 +30,7 @@ To stop the application, either from another terminal, or send the foreground pr
 		       } 
 	   message : {
 			 message_data : <data>,
+			 date : <date>,
 			 sid : <sender user>,
 			 rid : <receiver user >,
 			 attributes : { 

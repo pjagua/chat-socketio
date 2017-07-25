@@ -27,6 +27,7 @@ ASYNC_MODE = 'eventlet'
 DEBUG = False
 RELDR = False
 LOG = True
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 #Initialize DB object
 db = pymysql.connect(
@@ -140,31 +141,24 @@ def store_msg(msg, s_user, r_user, attrib=None):
             cursor.close()
         return msg_fetch(sid, rid)
 
-def _json_parse(_json):
-    if not _json:
-        return None
-
-    for k,v in _json.iteritems():
-        if not v:
-            return None
-    return True
-
 def msg_fetch(sid, rid, page=None, limit=None):
     if not limit:
         limit = 10**18
     if not page:
         page = 0
 
-        
-        with db.cursor() as cursor:
-            sql = "SELECT `date`, `message`, `attributes`, `id` FROM `messages` WHERE `sid` AND `rid` IN (%s, %s) ORDER BY UNIX_TIMESTAMP(date) DESC LIMIT %s, %s"
-            cursor.execute(sql, (sid, rid, page, limit))
-            result = cursor.fetchall()
+    with db.cursor() as cursor:
+        sql = "SELECT `date`, `message`, `attributes`, `id` FROM `messages` WHERE `sid` AND `rid` IN (%s, %s) ORDER BY UNIX_TIMESTAMP(date) DESC LIMIT %s, %s"
+        cursor.execute(sql, (sid, rid, int(page), int(limit)))
+        result = cursor.fetchall()
+        cursor.close()
 
-            cursor.close()
+    return result
 
-        return result
 
+
+
+#SocketIO event handlers
 @socketio.on('login')
 def handle_logins(data):
     uid = None
@@ -239,7 +233,6 @@ def handle_logins(data):
 
 @socketio.on('msg')
 def handle_txt_msg_event(json_str):
-    date_format = '%Y-%m-%d %H:%M:%S'
     json_str = json.loads(json.dumps(json_str))
 
     if json.loads(json.dumps(json_str))['data']['type'] == 'msg':
@@ -263,31 +256,53 @@ def handle_txt_msg_event(json_str):
                                            'type' : 'msg',
                                            'id' : entry[0][3],
                                            'message' : {
+                                                         'date' : entry[0][0].strftime(DATE_FORMAT),
                                                          'message_data' : entry[0][1],
                                                          'attributes' : entry[0][2] 
                                                        }
                                       }
                             }))
-@socketio.on('/msgsearch')
-def handle_search_event():
+@socketio.on('msgsearch')
+def handle_search_event(json_str):
+
+    json_str = json.loads(json.dumps(json_str))
+
     if json_str['meta']['rows'] and json_str['meta']['page']:
         rows = json_str['meta']['rows']
         page = json_str['meta']['page']
 
-    if not json_str['data']['msg']['message']:
+    try:
+        msgs = msg_fetch(
+                            json_str['data']['message']['sid'], 
+                            json_str['data']['message']['rid'],
+                            page,
+                            rows
+                        )
+    except Exception as e:
+        sys.stderr.write("Failed to retrieve messages: {0}".format(e))
         emit('msgsearch', str({ 'errors' : {
-                                            'code' : '400',
-                                            'detail': 'Message object cannot be empty'
-                                           }})
-                    )
-        return
+                                            'code' : '500',
+                                            'detail': 'Internal Error while fetching messages'
+                                           }
+                              }
+                             )
+            )
 
-    msg = json_str['data']['msg']['message']['message_data'] 
-    sid = json_str['data']['msg']['message']['sid'] 
-    rid = json_str['data']['msg']['message']['rid'] 
-    attrib = json_str['data']['msg']['message']['attributes'] 
+    else:
+        for i in range(len(msgs)):
+            emit('msgsearch', str({ 'data' : {
+                                           'type' : 'msg',
+                                           'id' : msgs[i][3],
+                                           'message' : {
+                                                         'date' : msgs[i][0].strftime(DATE_FORMAT),
+                                                         'message_data' : msgs[i][1],
+                                                         'attributes' : msgs[i][2] 
+                                                       }
+                                      }
+                            }
+                           )
+                )
 
-    msges = msg_fetch(sid, rid, page, limit)
            
             
 
@@ -301,6 +316,9 @@ def login():
 def chat():
     return render_template('chat.html', name=None)
 
+@app.route('/messages/')
+def msg_search():
+    return render_template('search.html', name=None)
 
 
 socketio.run(app, host=HOST, port=PORT, use_reloader=RELDR, debug=DEBUG, log_output=LOG)
