@@ -7,7 +7,7 @@
 <body>
 <script type="text/javascript" charset="utf-8">
 $(document).ready(function() {
-    var socket = io.connect('http://localhost:18000');
+    var socket = io.connect('http://localhost:18000/chat');
 
     socket.on('msgsearch', function(msgs) {
         $("#json").append(msgs);
@@ -41,8 +41,8 @@ $(document).ready(function() {
 
 Rows: <input type="text" id="rows"><br>
 page: <input type="text" id="page"><br>
-page: <input type="text" id="sid"><br>
-page: <input type="text" id="rid"><br>
+Send User: <input type="text" id="sid"><br>
+Recieve User: <input type="text" id="rid"><br>
 <button id="sendButton">submit</button>
 </body>
 </html>

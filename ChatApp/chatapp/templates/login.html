@@ -7,9 +7,9 @@
 <body>
 <script type="text/javascript" charset="utf-8">
 $(document).ready(function() {
-    var socket = io.connect('http://localhost:18000');
+    var socket = io.connect('http://localhost:18000/chat');
     socket.on('connect', function() {
-        socket.emit('my event', 'connected!');
+        socket.emit('login', 'connected!');
     });
 
     $('#sendButton').on('click', function() {
@@ -26,13 +26,6 @@ $(document).ready(function() {
 
     socket.on('login', function(json) {
 	    $("#authresult").append('<li>'+json+'</li>');
-//	    if (json == true) {
-//		    $("#authresult").append('<li>Authenticated</li>');
-//		    window.location = "/chat";
-//	    } else {
-//		    $("#authresult").append('<li>Failed to Authenticate</li>');
-//		    window.location = "/login";
-//	    }
     });
 
 

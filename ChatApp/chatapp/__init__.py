@@ -159,7 +159,7 @@ def msg_fetch(sid, rid, page=None, limit=None):
 
 
 #SocketIO event handlers
-@socketio.on('login')
+@socketio.on('login', namespace='/chat')
 def handle_logins(data):
     uid = None
     
