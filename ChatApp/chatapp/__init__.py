@@ -231,7 +231,7 @@ def handle_logins(data):
                     )
 
 
-@socketio.on('msg')
+@socketio.on('msg', namespace = "/chat")
 def handle_txt_msg_event(json_str):
     json_str = json.loads(json.dumps(json_str))
 
@@ -262,7 +262,7 @@ def handle_txt_msg_event(json_str):
                                                        }
                                       }
                             }))
-@socketio.on('msgsearch')
+@socketio.on('msgsearch', namespace = "/chat")
 def handle_search_event(json_str):
 
     json_str = json.loads(json.dumps(json_str))
@@ -287,6 +287,7 @@ def handle_search_event(json_str):
                               }
                              )
             )
+
 
     else:
         for i in range(len(msgs)):
