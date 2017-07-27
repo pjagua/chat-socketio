@@ -5,6 +5,7 @@ from flask_socketio import emit
 from .functions import * 
 from . import app
 
+
 ASYNC_MODE = 'eventlet'
 LOG = True
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -15,6 +16,18 @@ socketio = SocketIO(app, sync_mode=ASYNC_MODE, engineio_logger=LOG)
 #SocketIO event handlers
 @socketio.on('login', namespace='/chat')
 def handle_logins(data):
+    """
+    Login event handler expects a top-level object of type = data
+    with a "user_auth" member populated with username and password sub-members.
+
+    Returns a JSON top-level object of type = data 
+    with a "user_auth" member populated with the authenticated username
+
+    On error, a top-level Error object is returned with error code and details members
+    """
+
+
+
     uid = None
     
     try:
@@ -93,6 +106,13 @@ def handle_logins(data):
 
 @socketio.on('msg', namespace = "/chat")
 def handle_txt_msg_event(json_str):
+    """
+    msg event handler expects a top-level object of type = data
+    with a "message" member populated with "message_data", sid (Send userID), rid(Receiving userID) and attribute members..
+
+    On error, a top-level Error object is returned with error code and details members
+    """
+
     json_str = json.loads(json.dumps(json_str))
 
     if json.loads(json.dumps(json_str))['data']['type'] == 'msg':
@@ -126,6 +146,13 @@ def handle_txt_msg_event(json_str):
             return 0
 @socketio.on('msgsearch', namespace = "/chat")
 def handle_search_event(json_str):
+    """
+    msgsearch event handler expects a top-level object of type = data
+    Optional top-level object of "meta-data" with  member "rows" as rows of messages per page, and members "page" as page # designating the page
+    that should be displayed.
+
+    On error, a top-level Error object is returned with error code and details members
+    """
 
     json_str = json.loads(json.dumps(json_str))
 
