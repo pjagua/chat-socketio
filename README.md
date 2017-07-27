@@ -2,7 +2,7 @@
 
 Description
 ===========
-A simple WebSocket chat app using flask_socketio, a MySQL database backend, which stores credentials, and message image and video as attributes.
+A simple WebSocket chat app using flask_socketio (Flask SocketIO implementation), a MySQL database backend, storing the relevant data, such as credentials, messages and message attribures like image and video links.
     
 Installation
 ============
@@ -19,15 +19,25 @@ To stop the application, open another terminal, or by sending the process to the
 
 
 ### API Documentation
-+ "login" -- event handler
+SocketIO event handlers are implemented in order to handle client/server events within the SocketIO implementation.
+Using the jsonapi.org specification, JSON objects are used to emit request/response between client and server.
+Error notification are sent using JSON error objects
+
+#### Event Handlers
+Each event handler return a JSON top-level object, and a return value designated for client callback functions
++ "login" 
     - Handles credential authentication events for users
-    - Creates a user for every non existent user using the JSON "type : login" and "user_auth" objects
+    - Creates users and authenticates against the stored account records.
     - A JSON "errors" top-level object will be returned upon error with a corresponding error code and details object 
 
-+ "messages" -- event handler
++ "messages"
     - Handles message events, storing the JSON data object in the MYSQL "chatapp" database.
+	- This includes the message data, URLs to image and video including metadata
+
+- "msgsearch"
+    - Handles search events, where messages between 2 users with optional rows per page and page request are sent to the server by JSON object 
+
  
-    - Member of the "/chat" namespace
 
 #### JSON SCHEMA
 ```json

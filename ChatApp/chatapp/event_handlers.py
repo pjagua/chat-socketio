@@ -27,6 +27,7 @@ def handle_logins(data):
                                     'detail': 'Bad Request, username or password cannot be empty'
                                    }})
             )
+        return 1
     else:
         try:
             uid = chk_user(username)
@@ -44,6 +45,7 @@ def handle_logins(data):
                                         'detail': 'User Authentication failed'
                                        }})
                 )
+            return 2
         else:
             print("User: {0} logged in successfully".format(username))
             emit('login', str({ 'data' : {
@@ -54,6 +56,7 @@ def handle_logins(data):
                                          }
                               })
                 )
+            return 0
     else:
         try:
             password, salt = salt_pass(password)
@@ -64,6 +67,7 @@ def handle_logins(data):
                                         'detail': 'Internal Server error'
                                        }})
                 )
+            return 1
         else:
             try:
                 useradd(username, password, salt) 
@@ -74,6 +78,7 @@ def handle_logins(data):
                                             'detail': 'Internal Server error occurred while trying to add user to the database'
                                            }})
                     )
+                return 1
             else:
                 emit('login', str({ 'data' : {
                                                 'type' : 'login',
@@ -83,6 +88,7 @@ def handle_logins(data):
                                              }
                                   })
                     )
+                return 0
 
 
 @socketio.on('msg', namespace = "/chat")
@@ -105,6 +111,7 @@ def handle_txt_msg_event(json_str):
                                                 'detail': 'Message object cannot be empty'
                                                }})
                 )
+            return 1
         else:
             emit('msg', str({ 'data' : {
                                            'type' : 'msg',
@@ -116,6 +123,7 @@ def handle_txt_msg_event(json_str):
                                                        }
                                       }
                             }))
+            return 0
 @socketio.on('msgsearch', namespace = "/chat")
 def handle_search_event(json_str):
 
@@ -141,6 +149,7 @@ def handle_search_event(json_str):
                               }
                              )
             )
+        return 1
 
 
     else:
@@ -157,3 +166,4 @@ def handle_search_event(json_str):
                             }
                            )
                 )
+            return 0
