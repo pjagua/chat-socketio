@@ -156,9 +156,8 @@ def handle_search_event(json_str):
 
     json_str = json.loads(json.dumps(json_str))
 
-    if json_str['meta']['rows'] and json_str['meta']['page']:
-        rows = json_str['meta']['rows']
-        page = json_str['meta']['page']
+    rows = (json_str['meta']['rows'] if json_str['meta']['rows'] else None)
+    page = (json_str['meta']['page'] if json_str['meta']['page'] else None) 
 
     try:
         msgs = msg_fetch(
