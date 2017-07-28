@@ -79,3 +79,19 @@ Each event handler return a JSON top-level object, and a return value designated
 	   }
 }
 ```
+
+Included Client
+===============
+A client has been included in order to provide practical/interactive testing.
+
+To access the application runtime, from the running server use a web-browser of our choice and connect to 
+http://<hostname>:18000/login
+Practical testing of login/user authentication 
+
+http://<hostname>:18000/chat
+Access to the the message chat interface
+
+
+http://<hostname>:18000/chat
+Message search interface, shows practical testing for message searching between two users.
+
