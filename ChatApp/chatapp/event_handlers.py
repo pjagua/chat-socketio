@@ -161,8 +161,8 @@ def handle_search_event(json_str):
 
     try:
         msgs = msg_fetch(
-                            json_str['data']['message']['sid'], 
-                            json_str['data']['message']['rid'],
+                            chk_user(json_str['data']['message']['sid']), 
+                            chk_user(json_str['data']['message']['rid']),
                             page,
                             rows
                         )
