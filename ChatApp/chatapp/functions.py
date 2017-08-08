@@ -95,3 +95,10 @@ def msg_fetch(sid, rid, page=None, limit=None):
 
     return result
 
+
+def cleanup():
+    """
+    TODO:
+    Perform Cleanup
+    """
+    pass
