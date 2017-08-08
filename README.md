@@ -2,7 +2,7 @@
 
 Description
 ===========
-A simple WebSocket chat app using flask_socketio (Flask SocketIO implementation), a MySQL database backend, storing the relevant data, such as credentials, messages and message attribures like image and video links.
+A simple WebSocket chat app using flask_socketio (Flask SocketIO implementation) and MySQL database backend storing relevant data, such as credentials, messages and message attributes like images and video links.
     
 Installation
 ============
@@ -12,30 +12,30 @@ Installation
     - pip
 + Installing the app using docker-compose run:
     - docker-compose up chatapp
-Running docker-compose will automatically download the required docker images and creates the docker containers required to run the app.
-On statrup, the app creates the database schema and runs the application in the foreground of running terminal.
-To stop the application, open another terminal, or by sending the process to the background (Ctrl+Z in Unix), and run:
-    docker-compose down
++ Running docker-compose will automatically download the required docker images and create the docker containers required to run the app.
+On startup, the app creates the database schema and runs the application in the foreground of running terminal.
+To stop the application; open another terminal, or send the process to the background (Ctrl+Z in Unix), and then run:
+    - docker-compose down
 
 
 ### API Documentation
 SocketIO event handlers are implemented in order to handle client/server events within the SocketIO implementation.
 Using the jsonapi.org specification, JSON objects are used to emit request/response between client and server.
-Error notification are sent using JSON error objects
+Error notification are sent using JSON error objects.
 
 #### Event Handlers
-Each event handler return a JSON top-level object, and a return value designated for client callback functions
+Each event handler returns a JSON top-level object, and a return value designated for client callback functions.
 + "login" 
-    - Handles credential authentication events for users
+    - Handles credential authentication events for users.
     - Creates users and authenticates against the stored account records.
-    - A JSON "errors" top-level object will be returned upon error with a corresponding error code and details object 
+    - A JSON "errors" top-level object will be returned upon error with a corresponding error code and details. 
 
 + "messages"
     - Handles message events, storing the JSON data object in the MYSQL "chatapp" database.
-	- This includes the message data, URLs to image and video including metadata
+	- This includes the message data, URLs to image and video including metadata.
 
 - "msgsearch"
-    - Handles search events, where messages between 2 users with optional rows per page and page request are sent to the server by JSON object 
+    - Handles search events, where messages between 2 users with optional rows per page and page requests are sent to the server by JSON object. 
 
  
 
@@ -84,14 +84,15 @@ Included Client
 ===============
 A client has been included in order to provide practical/interactive testing.
 
-To access the application runtime, from the running server use a web-browser of our choice and connect to 
-http://<hostname>:18000/login
-Practical testing of login/user authentication 
+To access the application runtime from the running server, use a web-browser of your choice, and connect to 
 
-http://<hostname>:18000/chat
-Access to the the message chat interface
++ http://<hostname>:18000/login
+    - Practical testing of login/user authentication 
+
++ http://<hostname>:18000/chat
+    - Access to the the message chat interface
 
 
-http://<hostname>:18000/chat
-Message search interface, shows practical testing for message searching between two users.
++ http://<hostname>:18000/chat
+    - Message search interface, shows practical testing for message searching between two users.
 
