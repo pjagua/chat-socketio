@@ -36,3 +36,6 @@ db.cursor().execute('''CREATE TABLE IF NOT EXISTS messages (
         ON UPDATE CASCADE
         )ENGINE=InnoDB''')
 
+
+###
+# TODO: Move Database operations here

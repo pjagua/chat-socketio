@@ -6,7 +6,10 @@ from .functions import *
 from . import app
 
 
+
+#Set socketio async mode explicitly, or NONE to let the application decide
 ASYNC_MODE = 'eventlet'
+
 LOG = True
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 socketio = SocketIO(app, sync_mode=ASYNC_MODE, engineio_logger=LOG)

@@ -79,10 +79,13 @@ def store_msg(msg, s_user, r_user, attrib=None):
         return msg_fetch(sid, rid)
 
 def msg_fetch(sid, rid, page=None, limit=None):
+    if page and limit:
+        page = page * limit
+    else:
+        page = 0
+
     if not limit:
         limit = 10**18
-    if not page:
-        page = 0
 
     with db.cursor() as cursor:
         sql = "SELECT `date`, `message`, `attributes`, `id` FROM `messages` WHERE `sid` AND `rid` IN (%s, %s) ORDER BY UNIX_TIMESTAMP(date) DESC LIMIT %s, %s"
@@ -91,3 +94,4 @@ def msg_fetch(sid, rid, page=None, limit=None):
         cursor.close()
 
     return result
+

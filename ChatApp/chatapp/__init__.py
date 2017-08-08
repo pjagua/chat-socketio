@@ -13,7 +13,6 @@ __version__ = 0.1
 PORT = 8000
 HOST = '0.0.0.0'
 
-#Set socketio async mode explicitly, or NONE to let the application decide
 DEBUG = False
 RELDR = False
 
@@ -21,7 +20,6 @@ RELDR = False
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
 
-from .event_handlers import *
 
 
 @app.route('/login/')
@@ -37,4 +35,5 @@ def msg_search():
     return render_template('search.html', name=None)
 
 
+from .event_handlers import *
 socketio.run(app, host=HOST, port=PORT, use_reloader=RELDR, debug=DEBUG, log_output=LOG)
