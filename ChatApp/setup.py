@@ -11,5 +11,6 @@ setup(
         'flask',
         'flask_socketio',
         'eventlet',
+        'PyMySQL'
     ],
 )
