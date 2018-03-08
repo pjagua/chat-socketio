@@ -4,6 +4,7 @@ from flask_socketio import SocketIO
 from flask_socketio import emit
 from .functions import * 
 from . import app
+from .db import database
 
 
 
@@ -12,8 +13,17 @@ ASYNC_MODE = 'eventlet'
 
 LOG = True
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+DB_HOST = 'db'
+DB_USER = 'root'
+DB_PASS = 'testpass'
+DATABASE = 'chatapp'
 socketio = SocketIO(app, sync_mode=ASYNC_MODE, engineio_logger=LOG)
 
+# Open a connection pool to the database
+try:
+    _db = database.DB(host=DB_HOST, user=DB_USER, password=DB_PASS, _database=DATABASE) 
+except Exception as e:
+    raise RuntimeError(e)
 
 
 #SocketIO event handlers
@@ -46,57 +56,56 @@ def handle_logins(data):
         return 1
     else:
         try:
-            uid = chk_user(username)
+            uid = chk_user(username, _db)
         except Exception as e:
             sys.stderr.write("User doesn't exist: {0}, adding user {1}".format(e, username))
 
-
-    if uid:
-        try:
-            user_auth(uid, password)
-        except Exception as e:
-            sys.stderr.write("Failed verify user: {0}".format(e))
-            emit('login', str({'errors' : {
+        if uid:
+            try:
+                user_auth(uid, password, _db)
+            except Exception as e:
+                sys.stderr.write("Failed verify user: {0}".format(e))
+                emit('login', str({'errors' : {
                                         'code' : '401',
                                         'detail': 'User Authentication failed'
                                        }})
-                )
-            return 2
-        else:
-            print("User: {0} logged in successfully".format(username))
-            emit('login', str({ 'data' : {
+                    )
+                return 2
+            else:
+                print("User: {0} logged in successfully".format(username))
+                emit('login', str({ 'data' : {
                                             'type' : 'login',
                                             'user_auth' : {
                                                             'username' : username
                                                           }
                                          }
                               })
-                )
-            return 0
-    else:
-        try:
-            password, salt = salt_pass(password)
-        except Exception as e:
-            sys.stderr.write("Failed to salt password: {0}".format(e))
-            emit('login', str({ 'errors' : {
+                    )
+                return 0
+        else:
+            try:
+                password, salt = salt_pass(password)
+            except Exception as e:
+                sys.stderr.write("Failed to salt password: {0}".format(e))
+                emit('login', str({ 'errors' : {
                                         'code' : '500',
                                         'detail': 'Internal Server error'
                                        }})
-                )
-            return 1
-        else:
-            try:
-                useradd(username, password, salt) 
-            except Exception as e:
-                sys.stderr.write("Failed to create new user: {0}".format(e))
-                emit('login', str({ 'errors' : {
+                    )
+                return 1
+            else:
+                try:
+                    useradd(username, password, salt, _db) 
+                except Exception as e:
+                    sys.stderr.write("Failed to create new user: {0}".format(e))
+                    emit('login', str({ 'errors' : {
                                             'code' : '500',
                                             'detail': 'Internal Server error occurred while trying to add user to the database'
                                            }})
                     )
-                return 1
-            else:
-                emit('login', str({ 'data' : {
+                    return 1
+                else:
+                    emit('login', str({ 'data' : {
                                                 'type' : 'login',
                                                 'user_auth' : {
                                                                 'username' : username
@@ -104,7 +113,7 @@ def handle_logins(data):
                                              }
                                   })
                     )
-                return 0
+                    return 0
 
 
 @socketio.on('msg', namespace = "/chat")

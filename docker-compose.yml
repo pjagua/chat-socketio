@@ -14,5 +14,7 @@ services:
         build: .
         links:
             - db
+        volumes:
+            - .:/usr/src/app
         ports:
             - "18000:8000"

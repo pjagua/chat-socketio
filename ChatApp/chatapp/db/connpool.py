@@ -13,23 +13,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import threading
 import logging
-import Queue
+import queue
 import pymysql
 from pymysql import err as pymErr
 from pymysql.connections import Connection as pymConn
 
 
-class BaseConnection(pymConn):
-    __pym_exceptions = (pymErr.ProgrammingError, pymErr.IntegrityError, pymErr.NotSupportedError)
-
-    def __init__(self, host, user, password, database, port):
-        pymysql.connections.Connection(host=host, user=user, port=port)
-
-class Connection(BaseConnection):
+class Connection(pymConn):
     _pool = None
-    _reusable_expection = (pymErr.ProgrammingError, pymErr.IntegrityError, pymErr.NotSupportedError)
+    _reusable_exception = (pymErr.ProgrammingError, pymErr.IntegrityError, pymErr.NotSupportedError)
     def __init__(self, host, user, password, database, port=None):
         self.__user = user
         self.__host = host
@@ -40,18 +35,17 @@ class Connection(BaseConnection):
                 password=self.__password, database=self.__database, port=self.__port)
 
     def __exit__(self, exc, value, traceback):
-        pymConn.__exit__(self, exc, value, traceback)
-        if self._in_use_conns:
-            if not exc or exc in self._reusable_exception:
-                self._pool.put_connection(self)
-            else:
-                self._pool.put_connection(self._recreate(self, host=self.__host, user=self.__user, 
-                    password=self.__password, database=self.__database, port=self.__port))
-                self._pool = None
-                try:
-                    self.close()
-                except Exception:
-                    pass
+        super(Connection, self).__exit__(exc, value, traceback)
+        if not exc or exc in self._reusable_exception:
+            self._pool.put_connection(self)
+        else:
+            self._pool.put_connection(self._recreate(self, host=self.__host, user=self.__user, 
+                password=self.__password, database=self.__database, port=self.__port))
+            self._pool = None
+            try:
+                self.close()
+            except Exception:
+                pass
 
     def _recreate(self, host, user, password, database, port):
         conn = Connection(host=self.__host, user=self.__user, password=self.__password, 
@@ -62,15 +56,23 @@ class Connection(BaseConnection):
         if self._pool:
             self._pool.put_connection(self)
         else:
-            self.pymConn.close(self)
-    def execute_query(self, queryi, args=()):
+            self.cusrsor().close(self)
+
+    def execute_query(self, query, args=()):
         cur = self.cursor()
         try:
-            cur.execute(query, args)
+            sys.stderr.write("QUERY: {0}".format(query))
+            cur.execute(query)
         except Exception as e:
             raise Exception(e)
-
-        return cur.fetchall()
+        else:
+            try:
+                result = cur.fetchall()
+                #sys.stderr.write(str(result))
+            except Exception as e:
+                raise RuntimeError(e)
+            else:
+                return result
 
 
 class ConnectionPool(object):
@@ -78,11 +80,11 @@ class ConnectionPool(object):
     THREAD_LOCAL = threading.local()
     THREAD_LOCAL.retry_counter = 0
 
-
-    def __init__(self, host, user, password, database, port, size=5, name=None):
-        self._pool = Queue.queue(self.MAX_CONN)
+    def __init__(self, host, user, password, database, port, minsize, name=None):
+        self._pool = queue.Queue(self.MAX_CONN)
         self.name = (name if name else '-'.join([host, user, database]))
-        for _ in range(size if size < self.MAX_CONN else MAX_CONN):
+        print(host, user, password, database, port, minsize)
+        for _ in range(minsize if minsize < self.MAX_CONN else self.MAX_CONN):
             conn = Connection(host, user, password, database, port)
             conn._pool = self
             self._pool.put(conn)
@@ -108,13 +110,15 @@ class ConnectionPool(object):
     def put_connection(self, conn):
         if not conn._pool:
             conn._pool = self
-        conn.cursor().close()
+            conn.close()
         try:
             self._pool.put_nowait(conn)
         except queue.Full:
             '''
             log error
             '''
+            pass
+
     def size(self):
         return self._pool.qsize()
 
