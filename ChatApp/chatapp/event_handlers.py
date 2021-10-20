@@ -117,7 +117,7 @@ def handle_logins(data):
 
 
 @socketio.on('msg', namespace = "/chat")
-def handle_txt_msg_event(json_str):
+def handle_txt_msg_event(_str):
     """
     msg event handler expects a top-level object of type = data
     with a "message" member populated with "message_data", sid (Send userID), rid(Receiving userID) and attribute members..
@@ -125,7 +125,7 @@ def handle_txt_msg_event(json_str):
     On error, a top-level Error object is returned with error code and details members
     """
 
-    json_str = json.loads(json.dumps(json_str))
+    json_str = json.loads(json.dumps(_str))
 
     if json.loads(json.dumps(json_str))['data']['type'] == 'msg':
 
@@ -135,7 +135,7 @@ def handle_txt_msg_event(json_str):
                               json_str['data']['message']['sid'], 
                               json_str['data']['message']['rid'],
                               json_str['data']['message']['attributes']
-                             )
+                             , _db)
         except Exception as e:
             sys.stderr.write("Failed to save message: {0}\n".format(e))
             emit('msgsearch', str({ 'errors' : {
@@ -173,10 +173,11 @@ def handle_search_event(json_str):
 
     try:
         msgs = msg_fetch(
-                            chk_user(json_str['data']['message']['sid']), 
-                            chk_user(json_str['data']['message']['rid']),
+                            chk_user(json_str['data']['message']['sid'], _db), 
+                            chk_user(json_str['data']['message']['rid'], _db),
                             page,
-                            rows
+                            rows,
+                            _db
                         )
     except Exception as e:
         sys.stderr.write("Failed to retrieve messages: {0}".format(e))

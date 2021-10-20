@@ -154,7 +154,6 @@ class DB(object):
                 insrt_stmt = "INSERT {0}".format(insrt)
                 try:
                    rc = self.__db.execute_query(insrt_stmt)
-                   sys.stderr.write(str(rc))
                 except Exception as e:
                     raise RuntimeError("ERROR: {0} - {1}".format(insrt_stmt, e))
             finally:

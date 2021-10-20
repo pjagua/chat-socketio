@@ -17,4 +17,4 @@ services:
         volumes:
             - .:/usr/src/app
         ports:
-            - "18000:8000"
+            - "18000:5000"

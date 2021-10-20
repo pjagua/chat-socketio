@@ -61,14 +61,15 @@ class Connection(pymConn):
     def execute_query(self, query, args=()):
         cur = self.cursor()
         try:
-            sys.stderr.write("QUERY: {0}".format(query))
             cur.execute(query)
+            self.commit()
+            sys.stderr.write("QUERY: {0} ".format(query))
         except Exception as e:
             raise Exception(e)
         else:
             try:
                 result = cur.fetchall()
-                #sys.stderr.write(str(result))
+                sys.stderr.write("RESULT: {0}".format(str(result)))
             except Exception as e:
                 raise RuntimeError(e)
             else:
